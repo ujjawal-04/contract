@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSubscription } from "@/hooks/use-subscription";
-import { api, deleteAccount, logout } from "@/lib/api";
+import { api, deleteAccount } from "@/lib/api";
 import stripePromise from "@/lib/stripe";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -22,8 +22,6 @@ import {
 export default function GlobalSettings() {
   const {
     subscriptionStatus,
-    isSubscriptionLoading,
-    isSubscriptionError,
     setLoading,
   } = useSubscription();
   

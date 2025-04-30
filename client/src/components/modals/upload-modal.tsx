@@ -4,7 +4,6 @@ import {
     DialogTitle,
     DialogDescription,
     DialogHeader,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { useContractStore } from "@/store/zustand";
@@ -12,7 +11,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { AnimatePresence, motion } from "framer-motion";
-import { FileText, Sparkles, Trash, AlertCircle, CheckCircle, ExternalLink, X, Brain } from "lucide-react";
+import { FileText, Sparkles, Trash, AlertCircle, CheckCircle, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
@@ -23,10 +22,19 @@ interface IUploadModalProps {
     onUploadComplete: () => void;
 }
 
+// Custom error type
+interface ApiError {
+    message: string;
+    response?: {
+        data?: {
+            message?: string;
+        };
+    };
+}
+
 export function UploadModal({
     isOpen,
     onClose,
-    onUploadComplete,
 }: IUploadModalProps) {
     const router = useRouter();
     const { setAnalysisResults } = useContractStore();
@@ -39,7 +47,7 @@ export function UploadModal({
       "upload" | "detecting" | "confirm" | "processing" | "done" 
     >("upload");
 
-    const { mutate: detectContractType, isError: isDetectError } = useMutation({
+    const { mutate: detectContractType } = useMutation({
         mutationFn: async ({ file }: { file: File }) => {
             const formData = new FormData();
             formData.append("contract", file);
@@ -54,23 +62,25 @@ export function UploadModal({
                     }
                 );
                 return response.data.detectedType;
-            } catch (error: any) {
-                console.error("API Error:", error.response?.data || error.message);
-                throw new Error(error.response?.data?.message || "Failed to detect contract type");
+            } catch (error: unknown) {
+                const apiError = error as ApiError;
+                console.error("API Error:", apiError.response?.data || apiError.message);
+                throw new Error(apiError.response?.data?.message || "Failed to detect contract type");
             }
         },
         onSuccess: (data: string) => {
             setDetectedType(data);
             setStep("confirm");
         },
-        onError: (error: any) => {
-            console.error("Failed to detect contract type:", error);
-            setError(error.message || "Failed to detect contract type. Please try again.");
+        onError: (error: unknown) => {
+            const apiError = error as Error;
+            console.error("Failed to detect contract type:", apiError);
+            setError(apiError.message || "Failed to detect contract type. Please try again.");
             setStep("upload");
         },
     });
 
-    const { mutate: uploadFile, isPending: isProcessing, isError: isUploadError } = useMutation({
+    const { mutate: uploadFile, isPending: isProcessing } = useMutation({
         mutationFn: async ({ file, contractType }: { file: File; contractType: string }) => {
             const formData = new FormData();
             formData.append("contract", file);
@@ -85,9 +95,10 @@ export function UploadModal({
                 
                 console.log(response.data);
                 return response.data;
-            } catch (error: any) {
-                console.error("API Error:", error.response?.data || error.message);
-                throw new Error(error.response?.data?.message || "Failed to analyze contract");
+            } catch (error: unknown) {
+                const apiError = error as ApiError;
+                console.error("API Error:", apiError.response?.data || apiError.message);
+                throw new Error(apiError.response?.data?.message || "Failed to analyze contract");
             }
         },
         onSuccess: (data) => {
@@ -97,9 +108,10 @@ export function UploadModal({
             // Change to the "done" step
             setStep("done");
         },
-        onError: (error: any) => {
-            console.error("Upload error:", error);
-            setError(error.message || "Failed to upload and analyze contract");
+        onError: (error: unknown) => {
+            const apiError = error as Error;
+            console.error("Upload error:", apiError);
+            setError(apiError.message || "Failed to upload and analyze contract");
             setStep("upload");
         },
     });
@@ -286,7 +298,7 @@ export function UploadModal({
                                 <DialogHeader>
                                     <DialogTitle>Contract Type Detected</DialogTitle>
                                     <DialogDescription>
-                                        We've detected the following contract type:
+                                        We&apos;ve detected the following contract type:
                                     </DialogDescription>
                                 </DialogHeader>
                                 

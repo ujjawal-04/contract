@@ -10,6 +10,7 @@ export const useCurrentUser = () => {
     queryFn:async () => {
         try {
             const response = await api.get("/auth/current-user");
+            console.log(response.data);
             return response.data;
         } catch (error) {
             console.error(error);

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
+import { ContractAnalysis } from '@/interfaces/contract.interface';
 
 interface ContractStore {
-    analysisResults: any;
-    setAnalysisResults: (results: any) => void;
+    analysisResults: ContractAnalysis | undefined;
+    setAnalysisResults: (results: ContractAnalysis) => void;
 }
 
 const useContractStore = create<ContractStore>((set) => ({
@@ -12,20 +13,18 @@ const useContractStore = create<ContractStore>((set) => ({
 
 type ModalState = {
     modals: Record<string, boolean>;
-    openModal: (key:string) => void;
-    closeModal: (key:string) => void;
-    isOpen: (key:string) => boolean;
+    openModal: (key: string) => void;
+    closeModal: (key: string) => void;
+    isOpen: (key: string) => boolean;
 };
 
 const useModalStore = create<ModalState>((set, get) => ({
     modals: {},
-    openModal : (key:string) => 
+    openModal: (key: string) => 
         set((state) => ({modals: {...state.modals, [key]: true}})),
-    closeModal : (key:string) => 
+    closeModal: (key: string) => 
         set((state) => ({modals: {...state.modals, [key]: false}})),
-isOpen: (key:string) => Boolean(get().modals[key]),
-}))
+    isOpen: (key: string) => Boolean(get().modals[key]),
+}));
 
-
-
-export { useContractStore, useModalStore};
+export { useContractStore, useModalStore };

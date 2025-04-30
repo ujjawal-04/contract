@@ -4,7 +4,8 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { ArrowLeft, Sparkles, Brain, Award, Globe, Code } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import Image from "next/image"
 
 export default function AboutUs() {
   // Animation variants
@@ -141,7 +142,7 @@ export default function AboutUs() {
                 animate={{ opacity: [0, 0.5, 0] }}
                 transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
               />
-              <img
+              <Image
                 src="/mission.jpg" 
                 alt="Our mission" 
                 className="w-full h-auto rounded-xl"

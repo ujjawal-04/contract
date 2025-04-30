@@ -27,13 +27,12 @@ interface IContractAnalysisResultsProps {
 
 export default function ContractAnalysisResults({
   analysisResults,
-  contractId,
-  isActive = false,
   isPremium = false
 }: IContractAnalysisResultsProps) {
   const [activeTab, setActiveTab] = useState("summary");
   const [refreshChart, setRefreshChart] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [isPremiumDialogOpen, setIsPremiumDialogOpen] = useState(false);
 
   console.log("Premium status:", isPremium);
 
@@ -82,18 +81,20 @@ export default function ContractAnalysisResults({
   };
   const scoreTrend = getScore();
   const Icon = scoreTrend.icon;
-  const getSeverityColor = (severity: string) => {
-    switch (severity?.toLowerCase()) {
-      case "high":
-        return "bg-red-100 text-red-600 border-red-300";
-      case "medium":
-        return "bg-yellow-100 text-yellow-600 border-yellow-300";
-      case "low":
-        return "bg-green-100 text-green-600 border-green-300";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
-    }
-  };
+
+  // Removing or commenting out unused function
+  // const getSeverityColor = (severity: string) => {
+  //   switch (severity?.toLowerCase()) {
+  //     case "high":
+  //       return "bg-red-100 text-red-600 border-red-300";
+  //     case "medium":
+  //       return "bg-yellow-100 text-yellow-600 border-yellow-300";
+  //     case "low":
+  //       return "bg-green-100 text-green-600 border-green-300";
+  //     default:
+  //       return "bg-gray-100 text-gray-800 border-gray-300";
+  //   }
+  // };
 
   const getSeverityBadge = (severity: string) => {
     switch (severity?.toLowerCase()) {
@@ -246,8 +247,6 @@ export default function ContractAnalysisResults({
   );
 
   // Ask AI button rendering based on premium status
-  const [isPremiumDialogOpen, setIsPremiumDialogOpen] = useState(false);
-  
   const renderAskAIButton = () => {
     if (isPremium) {
       return (

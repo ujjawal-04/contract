@@ -81,7 +81,7 @@ export default function UserContracts() {
     const columns: ColumnDef<ContractAnalysis>[] = [
         {
             accessorKey: "_id",
-            header: ({ column }) => {
+            header: ({ }) => {
                 return <div className="flex items-center">
                   <span className="font-medium">Contract ID</span>
                 </div>;

@@ -135,13 +135,13 @@ User: ${inputMessage}`,
           { type: "ai", message: "Error: Could not retrieve response.", recommendations: [] },
         ]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error calling Gemini API:", error);
       setChatHistory((prev) => [
         ...prev,
         {
           type: "ai",
-          message: `Error: ${error.message || "Something went wrong."}`,
+          message: `Error: ${error instanceof Error ? error.message : "Something went wrong."}`,
           recommendations: [],
         },
       ]);
@@ -245,7 +245,11 @@ User: ${inputMessage}`,
             placeholder="Ask your question..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSendMessage();
+              }
+            }}
             disabled={isThinking}
           />
           <Button

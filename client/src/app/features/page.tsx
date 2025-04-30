@@ -13,7 +13,6 @@ import {
   CircleDollarSign, 
   ShieldCheck, 
   Clock,
-  Settings,
   CheckCircle2,
   BarChart2,
   FileText,
@@ -22,6 +21,7 @@ import {
   Glasses
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Image from "next/image"
 
 export default function Features() {
   // Animation variants
@@ -409,7 +409,7 @@ export default function Features() {
                       animate={{ opacity: [0, 0.5, 0] }}
                       transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
                     />
-                    <img
+                    <Image
                       src={feature.image}
                       alt={feature.title}
                       className="w-full h-auto rounded-xl"
