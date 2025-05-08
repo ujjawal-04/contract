@@ -17,6 +17,7 @@ import contractsRoute from "./routes/contracts";
 import paymentsRoute from "./routes/payments";
 import userRoutes from "./routes/user.routes";
 import { handleWebHook } from "./controllers/payment.controller";
+import enterpriseRoutes from "./routes/enterprise.routes";
 
 const app = express();
 
@@ -70,10 +71,10 @@ app.use("/auth", authRoute);
 app.use("/contracts", contractsRoute);
 app.use("/payments", paymentsRoute);
 app.use("/api/users", userRoutes);
+app.use("/enterprise", enterpriseRoutes);
 
 // --- START SERVER ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-

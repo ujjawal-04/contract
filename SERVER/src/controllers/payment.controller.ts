@@ -1,5 +1,8 @@
+// src/controllers/payment.controller.ts - Fixed version
 import { Request, Response } from "express"; 
 import User, { IUser } from "../models/user.model"; 
+import Organization from "../models/organization.model"; // Added import
+import AuditLog from "../models/audit-log.model"; // Added import
 import Stripe from "stripe"; 
 import { sendPremiumConfirmationEmail } from "../services/email.service";  
 
@@ -10,7 +13,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 
 export const createCheckoutSession = async (req: Request, res: Response) => {     
   // Type the user correctly
-  // Mongoose's Document type includes _id, but we need to be explicit about it having toString()
   const user = req.user as IUser & { _id: { toString(): string } };
   
   try {         
@@ -58,6 +60,7 @@ export const handleWebHook = async (req: Request, res: Response) => {
     return;       
   }       
   
+  // Handle individual premium subscription
   if (event.type === "checkout.session.completed") {         
     const session = event.data.object as Stripe.Checkout.Session;         
     const userId = session.client_reference_id;          
@@ -81,8 +84,75 @@ export const handleWebHook = async (req: Request, res: Response) => {
         console.error("Error updating user premium status:", error);
       }
     }      
-  }       
-  
+  }
+
+  // Handle enterprise subscription
+  if (event.type === "checkout.session.completed" || event.type === "customer.subscription.created") {
+    const session = event.data.object;
+    
+    // Check if this is an enterprise subscription by looking for organizationId in metadata
+    const organizationId = session.metadata?.organizationId;
+    
+    if (organizationId) {
+      try {
+        const planType = session.metadata?.planType;
+        const maxUsers = parseInt(session.metadata?.maxUsers || "10", 10);
+        const features = getFeaturesByPlan(planType);
+        
+        // Fix the subscription property error by checking the object type
+        let subscriptionId: string | undefined;
+        
+        if ('subscription' in session && session.subscription) {
+          // For Checkout.Session objects, the subscription is a string
+          subscriptionId = session.subscription as string;
+        } else if ('id' in session) {
+          // For Subscription objects, use its ID
+          subscriptionId = session.id;
+        }
+        
+        // Update organization subscription details
+        if (subscriptionId) {
+          await Organization.findByIdAndUpdate(
+            organizationId,
+            { 
+              planType,
+              maxUsers,
+              features,
+              stripeSubscriptionId: subscriptionId,
+              "teamSettings.customTemplates": planType !== "basic"
+            }
+          );
+          
+          console.log(`Enterprise subscription activated for organization ${organizationId}`);
+          
+          // Create an audit log entry
+          const organization = await Organization.findById(organizationId);
+          if (organization) {
+            const admin = await User.findOne({ 
+              organizationId, 
+              role: "admin" 
+            });
+            
+            if (admin) {
+              await AuditLog.create({
+                organizationId,
+                userId: admin._id,
+                action: "subscription_activated",
+                resourceType: "organization",
+                resourceId: organizationId,
+                details: `${planType} subscription activated`
+              });
+            }
+          }
+        } else {
+          console.error("Could not find subscription ID in webhook data");
+        }
+      } catch (error) {
+        console.error("Error processing enterprise subscription:", error);
+      }
+    }
+  }
+       
   res.json({ received: true }); 
 };  
 
@@ -95,3 +165,35 @@ export const getPremiumStatus = async (req: Request, res: Response) => {
     res.json({ status: "inactive" });     
   } 
 };
+
+// Helper function to get features by plan
+function getFeaturesByPlan(planType?: string): string[] {
+  const baseFeatures = [
+    "team-collaboration", 
+    "contract-sharing", 
+    "analytics-dashboard"
+  ];
+  
+  switch (planType) {
+    case "professional":
+      return [
+        ...baseFeatures,
+        "advanced-analytics",
+        "custom-templates",
+        "bulk-upload"
+      ];
+    case "enterprise":
+      return [
+        ...baseFeatures,
+        "advanced-analytics",
+        "custom-templates",
+        "bulk-upload",
+        "sso-integration",
+        "audit-logs",
+        "api-access",
+        "dedicated-support"
+      ];
+    default: // basic
+      return baseFeatures;
+  }
+}

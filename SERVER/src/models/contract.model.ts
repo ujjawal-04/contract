@@ -20,9 +20,37 @@ interface ICompensationStructure {
     otherBenefits: string;
 }
 
+interface IComment {
+    userId: IUser["_id"];
+    comment: string;
+    createdAt: Date;
+    replyTo?: mongoose.Types.ObjectId;
+}
+
+interface ISharedAccess {
+    userId: IUser["_id"];
+    accessLevel: "view" | "comment" | "edit";
+}
+
+interface IApprovalStep {
+    userId: IUser["_id"];
+    status: "pending" | "approved" | "rejected";
+    comments: string;
+    timestamp: Date;
+}
+
+interface IAuditLogEntry {
+    userId: IUser["_id"];
+    action: string;
+    timestamp: Date;
+    details: any;
+}
+
 export interface IContractAnalysis extends Document {
     userId: IUser["_id"];
     projectId: mongoose.Types.ObjectId;
+    organization: mongoose.Types.ObjectId;
+    createdBy: IUser["_id"];
     contractText: string;
     risks: IRisk[];
     opportunities: IOpportunity[];
@@ -43,7 +71,7 @@ export interface IContractAnalysis extends Document {
         rating: number;
         comments: string;
     };
-    customFields: { [key: string]: string };
+    customFields: { [key: string]: any };
     expirationDate: Date;
     language: string;
     aimodel: string;
@@ -53,6 +81,11 @@ export interface IContractAnalysis extends Document {
         details: string[];
     };
     specificClauses?: string;
+    sharedWith: ISharedAccess[];
+    comments: IComment[];
+    approvalStatus: "draft" | "pending" | "approved" | "rejected";
+    approvalFlow: IApprovalStep[];
+    auditLog: IAuditLogEntry[];
 }
 
 const ContractAnalysisSchema = new Schema({
@@ -66,6 +99,15 @@ const ContractAnalysisSchema = new Schema({
         ref: "Project", 
         required: true,
         default: () => new mongoose.Types.ObjectId() // Added default value
+    },
+    organization: { 
+        type: Schema.Types.ObjectId, 
+        ref: "Organization" 
+    },
+    createdBy: { 
+        type: Schema.Types.ObjectId, 
+        ref: "User", 
+        required: true 
     },
     contractText: { 
         type: String, 
@@ -156,7 +198,7 @@ const ContractAnalysisSchema = new Schema({
     },
     customFields: { 
         type: Map, 
-        of: String 
+        of: Schema.Types.Mixed 
     },
     expirationDate: { 
         type: Date, 
@@ -180,7 +222,71 @@ const ContractAnalysisSchema = new Schema({
     },
     specificClauses: {
         type: String
-    }
+    },
+    sharedWith: [{ 
+        userId: { 
+            type: Schema.Types.ObjectId, 
+            ref: "User" 
+        }, 
+        accessLevel: { 
+            type: String, 
+            enum: ["view", "comment", "edit"], 
+            default: "view" 
+        } 
+    }],
+    comments: [{ 
+        userId: { 
+            type: Schema.Types.ObjectId, 
+            ref: "User" 
+        }, 
+        comment: { 
+            type: String 
+        }, 
+        createdAt: { 
+            type: Date, 
+            default: Date.now 
+        }, 
+        replyTo: { 
+            type: Schema.Types.ObjectId 
+        } 
+    }],
+    approvalStatus: { 
+        type: String, 
+        enum: ["draft", "pending", "approved", "rejected"], 
+        default: "draft" 
+    },
+    approvalFlow: [{ 
+        userId: { 
+            type: Schema.Types.ObjectId, 
+            ref: "User" 
+        }, 
+        status: { 
+            type: String, 
+            enum: ["pending", "approved", "rejected"] 
+        }, 
+        comments: { 
+            type: String 
+        }, 
+        timestamp: { 
+            type: Date 
+        } 
+    }],
+    auditLog: [{ 
+        userId: { 
+            type: Schema.Types.ObjectId, 
+            ref: "User" 
+        }, 
+        action: { 
+            type: String 
+        }, 
+        timestamp: { 
+            type: Date, 
+            default: Date.now 
+        }, 
+        details: { 
+            type: Schema.Types.Mixed 
+        } 
+    }]
 });
 
 export default mongoose.model<IContractAnalysis>(

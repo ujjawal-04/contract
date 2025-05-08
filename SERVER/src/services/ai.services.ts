@@ -254,3 +254,150 @@ export const analyzeContractWithAI = async (
         }
     }
 };
+
+export const analyzeContractWithEnterpriseAI = async (
+    contractText: string,
+    contractType: string,
+    customRules?: any[]
+): Promise<string> => {
+    try {
+        if (!aiModel) {
+            throw new Error("AI model not initialized");
+        }
+
+        // Build prompt with custom rules if provided
+        let customRulesPrompt = "";
+        if (customRules && customRules.length > 0) {
+            customRulesPrompt = "Additionally, analyze the contract based on the following custom rules:\n";
+            customRules.forEach((rule, index) => {
+                customRulesPrompt += `${index + 1}. ${rule.description}\n`;
+            });
+        }
+
+        const prompt = `Analyze the following ${contractType} contract with enterprise-grade depth and precision: 
+        1. Conduct a comprehensive risk assessment with severity levels and mitigation strategies.
+        2. Identify all strategic opportunities with impact analysis and implementation recommendations.
+        3. Provide a detailed compliance analysis against relevant industry regulations.
+        4. Analyze negotiation leverage points with specific recommendations.
+        5. Identify all financial implications and obligations.
+        6. Flag all unusual or potentially problematic clauses.
+        7. Evaluate performance metrics, SLAs, and enforcement mechanisms.
+        8. Assess intellectual property provisions and their strategic impact.
+        9. Analyze liability, indemnification, and insurance requirements.
+        10. Evaluate termination conditions and exit strategies.
+        11. Assign an overall contract score from 1-100.
+        ${customRulesPrompt}
+
+        Format your response as a detailed JSON object with the following structure:
+        {
+            "risks": [{ 
+                "risk": "Risk description", 
+                "explanation": "Detailed explanation", 
+                "severity": "low|medium|high",
+                "mitigationStrategy": "Recommended mitigation approach"
+            }],
+            "opportunities": [{ 
+                "opportunity": "Opportunity description", 
+                "explanation": "Detailed explanation", 
+                "impact": "low|medium|high",
+                "implementationStrategy": "Recommended implementation approach"
+            }],
+            "summary": "Comprehensive executive summary",
+            "detailedAnalysis": "In-depth analysis of the contract",
+            "recommendations": ["Recommendation 1", "Recommendation 2", ...],
+            "keyClauses": [{ 
+                "clause": "Clause text or reference", 
+                "analysis": "Detailed analysis", 
+                "impact": "low|medium|high"
+            }],
+            "legalCompliance": {
+                "status": "compliant|non-compliant|partial",
+                "details": "Detailed compliance analysis",
+                "regulations": ["Regulation 1", "Regulation 2", ...]
+            },
+            "negotiationPoints": [{
+                "point": "Negotiation point",
+                "currentPosition": "Current contract position",
+                "recommendedPosition": "Recommended position",
+                "priority": "low|medium|high"
+            }],
+            "contractDuration": "Duration analysis",
+            "terminationConditions": {
+                "summary": "Summary of termination conditions",
+                "earlyTerminationRights": "Analysis of early termination rights",
+                "penalties": "Analysis of termination penalties"
+            },
+            "overallScore": "Overall score from 1 to 100",
+            "financialTerms": {
+                "overview": "Overview of financial terms",
+                "obligations": ["Obligation 1", "Obligation 2", ...],
+                "risks": ["Financial risk 1", "Financial risk 2", ...],
+                "optimizationOpportunities": ["Opportunity 1", "Opportunity 2", ...]
+            },
+            "performanceMetrics": [{
+                "metric": "Performance metric",
+                "target": "Target value or description",
+                "consequence": "Consequence of missing the target"
+            }],
+            "intellectualPropertyProvisions": {
+                "overview": "Overview of IP provisions",
+                "ownershipClauses": ["Clause 1", "Clause 2", ...],
+                "licenseGrants": ["License 1", "License 2", ...],
+                "restrictions": ["Restriction 1", "Restriction 2", ...]
+            },
+            "liabilityAnalysis": {
+                "limitations": "Analysis of liability limitations",
+                "indemnifications": "Analysis of indemnification provisions",
+                "insuranceRequirements": "Analysis of insurance requirements"
+            },
+            "strategicImplications": "Analysis of strategic business implications"
+        }
+        
+        Contract text:
+        ${contractText}
+        `;
+
+        const results = await aiModel.generateContent(prompt);
+        const response = results.response;
+        let rawResponseText = response.text();
+        
+        // Clean the response
+        let cleanedResponse = cleanJsonResponse(rawResponseText);
+        
+        // Validate JSON response
+        try {
+            JSON.parse(cleanedResponse);
+            return cleanedResponse;
+        } catch (jsonError) {
+            console.error("Failed to parse Enterprise AI response as JSON:", jsonError);
+            
+            // Attempt cleanup
+            let simpleCleaning = rawResponseText
+                .replace(/```json/g, '')
+                .replace(/```/g, '')
+                .trim();
+            
+            try {
+                JSON.parse(simpleCleaning);
+                return simpleCleaning;
+            } catch (simpleError) {
+                // Last resort cleaning
+                let lastResortCleaning = rawResponseText
+                    .substring(
+                        rawResponseText.indexOf('{'), 
+                        rawResponseText.lastIndexOf('}') + 1
+                    );
+                    
+                try {
+                    JSON.parse(lastResortCleaning);
+                    return lastResortCleaning;
+                } catch (lastError) {
+                    throw new Error("AI returned malformed JSON response");
+                }
+            }
+        }
+    } catch (error: unknown) {
+        console.error("Enterprise contract analysis error:", error);
+        throw new Error(`Failed to analyze contract with enterprise AI: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+};
